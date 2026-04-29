@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniPOS — Universal Point of Sale</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --ink: #0a0a0f;
+  --ink-2: #3d3d4a;
+  --ink-3: #8888a0;
+  --ink-4: #b8b8cc;
+  --surface: #ffffff;
+  --surface-2: #f5f5f8;
+  --surface-3: #eeeef4;
+  --border: #e2e2ec;
+  --accent: #2563eb;
+  --accent-2: #1d4ed8;
+  --accent-light: #eff6ff;
+  --accent-glow: rgba(37,99,235,0.12);
+  --green: #059669;
+  --green-bg: #ecfdf5;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --amber: #d97706;
+  --amber-bg: #fffbeb;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 20px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --transition: 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:15px; }
+body { font-family: var(--font); background: var(--surface-2); color: var(--ink); line-height: 1.5; -webkit-font-smoothing:antialiased; }
+
+/* ─── UTILITIES ─── */
+.hide { display: none !important; }
+.text-sm { font-size: 0.8rem; }
+.text-xs { font-size: 0.72rem; }
+.text-muted { color: var(--ink-3); }
+.font-mono { font-family: var(--mono); }
+.badge { display: inline-flex; align-items:center; gap:4px; padding: 3px 10px; border-radius: 50px; font-size: 0.72rem; font-weight:600; letter-spacing:0.03em; }
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-blue { background: var(--accent-light); color: var(--accent); }
+.badge-amber { background: var(--amber-bg); color: var(--amber); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.divider { height:1px; background: var(--border); margin: 16px 0; }
+.flex { display:flex; align-items:center; }
+.flex-between { display:flex; align-items:center; justify-content:space-between; }
+.gap-8 { gap:8px; }
+.gap-12 { gap:12px; }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+/* ─── FORMS ─── */
+label { display:block; font-size:0.78rem; font-weight:600; color: var(--ink-2); margin-bottom:6px; letter-spacing:0.02em; text-transform:uppercase; }
+input, select, textarea {
+  width:100%; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius); font-family: var(--font); font-size:0.9rem;
+  color: var(--ink); background: var(--surface); outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
+}
+input::placeholder { color: var(--ink-4); }
+input[type="file"] { padding: 8px; cursor:pointer; }
+select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position: right 12px center; padding-right:36px; }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding: 10px 20px; border-radius: var(--radius); border: none; cursor:pointer;
+  font-family: var(--font); font-size:0.88rem; font-weight:600; letter-spacing:0.01em;
+  transition: all var(--transition); white-space:nowrap;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color:#fff; }
+.btn-primary:hover { background: var(--accent-2); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+.btn-secondary { background: var(--surface-3); color: var(--ink-2); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: var(--red-bg); color: var(--red); }
+.btn-danger:hover { background: #fee2e2; }
+.btn-ghost { background: transparent; color: var(--ink-3); border: 1.5px solid var(--border); }
+.btn-ghost:hover { background: var(--surface-3); color: var(--ink); }
+.btn-success { background: var(--green); color:#fff; }
+.btn-success:hover { background: #047857; box-shadow: 0 4px 12px rgba(5,150,105,0.3); }
+.btn-lg { padding: 13px 28px; font-size:0.95rem; border-radius: 14px; }
+.btn-sm { padding: 6px 14px; font-size:0.78rem; border-radius: 8px; }
+.btn-icon { padding: 8px; width:36px; height:36px; border-radius: 8px; }
+.btn-full { width:100%; }
+
+/* ─── CARD ─── */
+.card { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.card-body { padding: 24px; }
+.card-header { padding: 20px 24px 0; }
+.card-footer { padding: 0 24px 20px; }
+
+/* ─── ICON WRAPPERS ─── */
+.icon-wrap { display:inline-flex; align-items:center; justify-content:center; border-radius:10px; flex-shrink:0; }
+.icon-wrap-sm { width:32px; height:32px; border-radius:8px; }
+.icon-wrap-lg { width:48px; height:48px; border-radius:14px; }
+
+/* ─── OVERLAY ─── */
+.overlay {
+  position:fixed; inset:0; background: rgba(10,10,15,0.55); backdrop-filter:blur(4px);
+  z-index:2000; display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition: opacity 0.2s ease;
+}
+.overlay.open { opacity:1; pointer-events:all; }
+.modal {
+  background: var(--surface); border-radius: 24px; padding: 32px;
+  width: min(520px, 95vw); box-shadow: var(--shadow-lg);
+  transform: translateY(20px); transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.overlay.open .modal { transform: translateY(0); }
+
+/* ─── TOAST ─── */
+#toast-container { position:fixed; top:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; }
+.toast {
+  background: var(--ink); color:#fff; padding:12px 18px; border-radius: 12px;
+  font-size:0.85rem; font-weight:500; box-shadow: var(--shadow-lg);
+  display:flex; align-items:center; gap:10px; max-width:340px;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+}
+.toast.success { background: #064e3b; }
+.toast.error { background: #7f1d1d; }
+.toast.info { background: #1e3a5f; }
+@keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+@keyframes toastOut { to { opacity:0; transform: translateX(20px); } }
+.toast-dot { width:8px; height:8px; border-radius:50%; background:#fff; opacity:0.6; flex-shrink:0; }
+
+/* ═══════════════════════════════════════
+   AUTH / ONBOARDING
+═══════════════════════════════════════ */
+#auth-screen {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+  position:relative; overflow:hidden;
+}
+#auth-screen::before {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(37,99,235,0.2) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.1) 0%, transparent 60%);
+}
+.auth-grid-bg {
+  position:absolute; inset:0; opacity:0.06;
+  background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.auth-card {
+  position:relative; z-index:1; background: rgba(255,255,255,0.04); backdrop-filter:blur(20px);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; padding: 48px;
+  width: min(480px, 95vw); box-shadow: 0 32px 80px rgba(0,0,0,0.4);
+}
+.auth-brand { text-align:center; margin-bottom:40px; }
+.auth-logo-mark {
+  width:56px; height:56px; background: linear-gradient(135deg, #2563eb, #7c3aed);
+  border-radius:16px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.4);
+}
+.auth-logo-mark svg { width:28px; height:28px; fill:none; stroke:#fff; stroke-width:2; }
+.auth-brand h1 { font-size:1.8rem; font-weight:700; color:#fff; letter-spacing:-0.02em; }
+.auth-brand p { color:rgba(255,255,255,0.45); font-size:0.85rem; margin-top:4px; }
+.auth-card label { color:rgba(255,255,255,0.55); }
+.auth-card input, .auth-card select {
+  background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.12);
+  color:#fff; border-radius:12px; padding:13px 16px;
+}
+.auth-card input::placeholder { color:rgba(255,255,255,0.25); }
+.auth-card input:focus, .auth-card select:focus {
+  border-color: rgba(37,99,235,0.7); box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+  background: rgba(255,255,255,0.1);
+}
+.auth-card select option { background: #1e3a5f; color:#fff; }
+.auth-tabs { display:flex; gap:4px; background:rgba(255,255,255,0.07); padding:4px; border-radius:12px; margin-bottom:28px; }
+.auth-tab {
+  flex:1; padding:9px; text-align:center; border-radius:9px; cursor:pointer;
+  font-size:0.85rem; font-weight:600; color:rgba(255,255,255,0.45); transition: all 0.2s;
+}
+.auth-tab.active { background: rgba(255,255,255,0.15); color:#fff; }
+.auth-field-group { margin-bottom:18px; }
+.auth-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.auth-divider { display:flex; align-items:center; gap:12px; margin:20px 0; }
+.auth-divider span { flex:1; height:1px; background:rgba(255,255,255,0.1); }
+.auth-divider p { color:rgba(255,255,255,0.3); font-size:0.75rem; }
+.btn-auth { width:100%; padding:13px; background: linear-gradient(135deg, #2563eb, #7c3aed); color:#fff; border:none; border-radius:12px; font-family:var(--font); font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; letter-spacing:0.01em; }
+.btn-auth:hover { opacity:0.9; transform:translateY(-1px); box-shadow: 0 8px 20px rgba(37,99,235,0.4); }
+.auth-link { color:rgba(255,255,255,0.4); font-size:0.8rem; text-align:center; margin-top:16px; }
+.auth-link span { color:rgba(99,179,237,0.9); cursor:pointer; text-decoration:underline; }
+
+/* Onboarding */
+#onboarding-screen {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg, #0f172a 0%, #1a2744 100%);
+  position:relative; overflow:hidden;
+}
+.onboarding-card {
+  background:#fff; border-radius:28px; padding:48px; width:min(640px,95vw);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.4); position:relative; z-index:1;
+}
+.onboarding-header { text-align:center; margin-bottom:36px; }
+.step-indicator { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:36px; }
+.step-dot { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; transition:all 0.3s; }
+.step-dot.done { background:var(--green); color:#fff; }
+.step-dot.active { background:var(--accent); color:#fff; box-shadow:0 0 0 4px var(--accent-glow); }
+.step-dot.pending { background:var(--surface-3); color:var(--ink-3); }
+.step-line { width:40px; height:2px; background:var(--border); }
+.step-line.done { background:var(--green); }
+.onboard-field { margin-bottom:20px; }
+.logo-upload-area {
+  border: 2px dashed var(--border); border-radius: var(--radius); padding:24px;
+  text-align:center; cursor:pointer; transition:all var(--transition); position:relative; overflow:hidden;
+}
+.logo-upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
+.logo-upload-area input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.logo-preview { width:80px; height:80px; object-fit:contain; border-radius:12px; display:none; }
+.category-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:8px; }
+.cat-option {
+  padding:14px 10px; border:1.5px solid var(--border); border-radius:var(--radius); text-align:center;
+  cursor:pointer; transition:all 0.18s; font-size:0.82rem; font-weight:600; color:var(--ink-2);
+}
+.cat-option:hover { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+.cat-option.selected { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+.cat-option svg { width:24px; height:24px; margin:0 auto 8px; display:block; stroke:currentColor; fill:none; stroke-width:1.8; }
+
+/* ═══════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════ */
+#app-screen { display:flex; flex-direction:column; min-height:100vh; }
+
+/* Topbar */
+.topbar {
+  height:62px; background:var(--surface); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 28px; gap:20px; position:sticky; top:0; z-index:500;
+  box-shadow: var(--shadow-sm);
+}
+.topbar-brand { display:flex; align-items:center; gap:12px; margin-right:auto; }
+.biz-logo-circle {
+  width:38px; height:38px; border-radius:10px; object-fit:cover; background:var(--accent);
+  display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:1rem;
+  overflow:hidden; flex-shrink:0;
+}
+.biz-logo-circle img { width:100%; height:100%; object-fit:cover; }
+.biz-info h3 { font-size:0.95rem; font-weight:700; line-height:1.2; }
+.biz-info small { color:var(--ink-3); font-size:0.72rem; }
+.topbar-actions { display:flex; align-items:center; gap:10px; }
+.user-pill { display:flex; align-items:center; gap:10px; padding:6px 14px; background:var(--surface-2); border-radius:50px; cursor:pointer; transition:all var(--transition); border:1px solid var(--border); }
+.user-pill:hover { background:var(--surface-3); }
+.user-avatar { width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.78rem; }
+
+/* Sidebar Nav */
+.app-body { display:flex; flex:1; min-height:0; }
+.sidebar {
+  width:220px; background:var(--surface); border-right:1px solid var(--border);
+  padding:20px 12px; display:flex; flex-direction:column; gap:4px; position:sticky; top:62px; height:calc(100vh - 62px); overflow-y:auto;
+}
+.nav-section { margin:8px 0 4px; padding:0 10px; }
+.nav-section-label { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-4); }
+.nav-item {
+  display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer;
+  font-size:0.87rem; font-weight:500; color:var(--ink-2); transition:all var(--transition); text-decoration:none;
+}
+.nav-item:hover { background:var(--surface-2); color:var(--ink); }
+.nav-item.active { background:var(--accent-light); color:var(--accent); font-weight:600; }
+.nav-item svg { width:18px; height:18px; flex-shrink:0; stroke:currentColor; fill:none; stroke-width:2; }
+.nav-item .nav-badge { margin-left:auto; background:var(--accent); color:#fff; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; }
+.sidebar-footer { margin-top:auto; padding-top:16px; border-top:1px solid var(--border); }
+
+/* Main Content */
+.main-content { flex:1; overflow-y:auto; padding:28px; min-width:0; }
+.page-header { margin-bottom:24px; }
+.page-header h1 { font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; }
+.page-header p { color:var(--ink-3); margin-top:4px; font-size:0.88rem; }
+
+/* ═══════════════════════════════════════
+   POS / SHOP
+═══════════════════════════════════════ */
+.pos-layout { display:grid; grid-template-columns:1fr 380px; gap:24px; align-items:start; }
+.products-panel {}
+.cart-panel { position:sticky; top:90px; }
+
+/* Search Bar */
+.search-wrap { position:relative; margin-bottom:20px; }
+.search-wrap svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); width:16px; height:16px; stroke:var(--ink-3); fill:none; stroke-width:2; pointer-events:none; }
+.search-wrap input { padding-left:44px; background:var(--surface); }
+
+/* Product Grid */
+.product-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:14px; }
+.product-card {
+  background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius);
+  overflow:hidden; cursor:pointer; transition:all var(--transition); position:relative;
+}
+.product-card:hover { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow), var(--shadow); transform:translateY(-2px); }
+.product-card:active { transform:scale(0.97); }
+.product-thumb { width:100%; height:100px; object-fit:cover; background:var(--surface-2); display:block; }
+.product-thumb-placeholder { width:100%; height:100px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; }
+.product-thumb-placeholder svg { width:32px; height:32px; stroke:var(--ink-4); fill:none; stroke-width:1.5; }
+.product-info { padding:10px 12px; }
+.product-info h4 { font-size:0.83rem; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
+.product-price { font-size:0.9rem; font-weight:700; color:var(--accent); font-family:var(--mono); }
+.product-card .add-badge {
+  position:absolute; top:8px; right:8px; background:var(--accent); color:#fff; width:22px; height:22px;
+  border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:800;
+  opacity:0; transform:scale(0.5); transition:all 0.2s;
+}
+.product-card:hover .add-badge { opacity:1; transform:scale(1); }
+
+/* Cart Panel */
+.cart-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.cart-header { padding:20px 20px 16px; border-bottom:1px solid var(--border); }
+.cart-header h3 { font-size:1rem; font-weight:700; }
+.cart-body { padding:16px 20px; min-height:140px; max-height:360px; overflow-y:auto; }
+.cart-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:140px; color:var(--ink-4); gap:8px; }
+.cart-empty svg { width:40px; height:40px; stroke:currentColor; fill:none; stroke-width:1.3; }
+.cart-item {
+  display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--surface-2);
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:translateX(0); } }
+.cart-item:last-child { border-bottom:none; }
+.cart-item-name { flex:1; font-size:0.85rem; font-weight:500; min-width:0; }
+.cart-item-name span { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cart-item-name small { color:var(--ink-3); font-size:0.75rem; }
+.qty-control { display:flex; align-items:center; gap:0; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.qty-btn { width:28px; height:28px; border:none; background:var(--surface-2); cursor:pointer; font-size:0.9rem; font-weight:600; color:var(--ink-2); transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
+.qty-btn:hover { background:var(--accent); color:#fff; }
+.qty-val { width:28px; text-align:center; font-size:0.83rem; font-weight:600; font-family:var(--mono); color:var(--ink); }
+.cart-item-price { font-family:var(--mono); font-size:0.88rem; font-weight:600; min-width:52px; text-align:right; }
+.remove-btn { background:none; border:none; cursor:pointer; color:var(--ink-4); padding:4px; border-radius:6px; transition:all 0.15s; display:flex; }
+.remove-btn:hover { color:var(--red); background:var(--red-bg); }
+.remove-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.5; }
+.cart-footer { padding:16px 20px; border-top:1px solid var(--border); background:var(--surface-2); }
+.cart-totals { margin-bottom:14px; }
+.cart-total-row { display:flex; justify-content:space-between; font-size:0.83rem; color:var(--ink-2); margin-bottom:6px; }
+.cart-total-row.grand { font-size:1.05rem; font-weight:700; color:var(--ink); margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+.cart-total-row .amount { font-family:var(--mono); }
+.customer-input-wrap { margin-bottom:14px; }
+
+/* Discount row */
+.discount-row { display:flex; gap:8px; align-items:center; margin-top:6px; }
+.discount-row input { width:100px; }
+
+/* ═══════════════════════════════════════
+   RECORDS / ANALYTICS
+═══════════════════════════════════════ */
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; }
+.stat-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+.stat-icon svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; }
+.stat-value { font-size:1.5rem; font-weight:800; font-family:var(--mono); letter-spacing:-0.02em; margin-bottom:4px; }
+.stat-label { font-size:0.77rem; color:var(--ink-3); font-weight:500; }
+.stat-change { font-size:0.75rem; font-weight:600; margin-top:6px; display:flex; align-items:center; gap:4px; }
+.stat-change.up { color:var(--green); }
+.stat-change.down { color:var(--red); }
+
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; margin-bottom:24px; }
+.chart-card h3 { font-size:1rem; font-weight:700; margin-bottom:4px; }
+.chart-card p { font-size:0.8rem; color:var(--ink-3); margin-bottom:20px; }
+.chart-wrap { height:240px; }
+
+/* Bill Archive */
+.archive-filters { display:flex; gap:10px; margin-bottom:16px; align-items:center; }
+.bill-table { width:100%; border-collapse:collapse; }
+.bill-table th { padding:10px 16px; text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); border-bottom:1px solid var(--border); background:var(--surface-2); }
+.bill-table th:first-child { border-radius:8px 0 0 8px; }
+.bill-table th:last-child { border-radius:0 8px 8px 0; }
+.bill-table td { padding:14px 16px; font-size:0.85rem; border-bottom:1px solid var(--surface-2); vertical-align:middle; }
+.bill-table tr:hover td { background:var(--surface-2); }
+.bill-table tr:last-child td { border-bottom:none; }
+.td-mono { font-family:var(--mono); font-weight:600; }
+.td-actions { display:flex; align-items:center; gap:6px; }
+
+/* ═══════════════════════════════════════
+   INVENTORY / STOCK
+═══════════════════════════════════════ */
+.inventory-layout { display:grid; grid-template-columns:340px 1fr; gap:24px; align-items:start; }
+.inventory-form-card { position:sticky; top:90px; }
+
+.inventory-table { width:100%; border-collapse:collapse; }
+.inventory-table th { padding:10px 16px; text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); border-bottom:1px solid var(--border); background:var(--surface-2); }
+.inventory-table td { padding:12px 16px; font-size:0.85rem; border-bottom:1px solid var(--surface-2); vertical-align:middle; }
+.inventory-table tr:hover td { background:var(--surface-2); }
+.inventory-table tr:last-child td { border-bottom:none; }
+.item-thumb-sm { width:44px; height:44px; border-radius:8px; object-fit:cover; background:var(--surface-2); }
+.stock-level { display:flex; align-items:center; gap:8px; }
+.stock-bar { flex:1; height:4px; background:var(--surface-3); border-radius:2px; overflow:hidden; max-width:80px; }
+.stock-bar-fill { height:100%; border-radius:2px; background:var(--green); }
+.stock-bar-fill.low { background:var(--amber); }
+.stock-bar-fill.empty { background:var(--red); }
+
+/* ═══════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════ */
+.settings-layout { display:grid; grid-template-columns:220px 1fr; gap:24px; }
+.settings-nav { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:12px; }
+.settings-nav-item { padding:10px 14px; border-radius:8px; cursor:pointer; font-size:0.87rem; font-weight:500; color:var(--ink-2); transition:all 0.15s; margin-bottom:2px; display:flex; align-items:center; gap:10px; }
+.settings-nav-item svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:2; }
+.settings-nav-item:hover { background:var(--surface-2); color:var(--ink); }
+.settings-nav-item.active { background:var(--accent-light); color:var(--accent); font-weight:600; }
+.settings-section { display:none; }
+.settings-section.active { display:block; }
+.settings-group { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; margin-bottom:20px; }
+.settings-group h3 { font-size:0.95rem; font-weight:700; margin-bottom:4px; }
+.settings-group > p { font-size:0.82rem; color:var(--ink-3); margin-bottom:20px; }
+.settings-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--surface-2); }
+.settings-row:last-child { border-bottom:none; padding-bottom:0; }
+.settings-row-label h4 { font-size:0.87rem; font-weight:600; }
+.settings-row-label p { font-size:0.78rem; color:var(--ink-3); margin-top:2px; }
+/* Toggle */
+.toggle { position:relative; width:44px; height:24px; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:var(--surface-3); border-radius:50px; transition:0.2s; border:1px solid var(--border); }
+.toggle-slider:before { content:''; position:absolute; height:18px; width:18px; left:2px; bottom:2px; background:white; border-radius:50%; transition:0.2s; box-shadow:0 1px 4px rgba(0,0,0,0.15); }
+.toggle input:checked + .toggle-slider { background:var(--accent); border-color:var(--accent); }
+.toggle input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+/* ═══════════════════════════════════════
+   RECEIPT PRINT
+═══════════════════════════════════════ */
+#receipt-frame {
+  display:none; background:#fff; width:320px; padding:28px 24px; margin:auto;
+  font-family:'Courier New',Courier,monospace; color:#000; font-size:12px; line-height:1.7;
+}
+.r-logo { text-align:center; margin-bottom:4px; }
+.r-logo img { max-width:80px; max-height:60px; object-fit:contain; }
+.r-biz-name { font-size:16px; font-weight:800; text-align:center; letter-spacing:1px; }
+.r-tagline { font-size:10px; text-align:center; margin-bottom:2px; color:#555; }
+.r-address { font-size:10px; text-align:center; color:#666; }
+.r-dash { border-top:1px dashed #000; margin:8px 0; }
+.r-meta { font-size:11px; }
+.r-meta td { padding:1px 0; }
+.r-meta td:first-child { color:#555; width:80px; }
+.r-items-header { display:flex; justify-content:space-between; font-weight:700; font-size:11px; margin-bottom:4px; padding-bottom:4px; border-bottom:1px solid #000; }
+.r-item { display:flex; justify-content:space-between; margin-bottom:2px; }
+.r-item-name { flex:1; }
+.r-item-right { text-align:right; min-width:70px; }
+.r-totals-row { display:flex; justify-content:space-between; font-size:11px; padding:1px 0; }
+.r-totals-row.grand { font-weight:800; font-size:13px; border-top:1px solid #000; padding-top:4px; margin-top:4px; }
+.r-footer { text-align:center; font-size:10px; color:#666; margin-top:8px; }
+.r-bill-no { font-size:10px; text-align:center; color:#888; }
+
+@media print {
+  body * { visibility:hidden !important; }
+  #receipt-frame, #receipt-frame * { visibility:visible !important; display:block !important; }
+  #receipt-frame { position:fixed; left:0; top:0; width:100%; display:block !important; box-shadow:none; border:none; }
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .stats-grid { grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width: 900px) {
+  .pos-layout { grid-template-columns:1fr; }
+  .cart-panel { position:static; }
+  .inventory-layout { grid-template-columns:1fr; }
+  .settings-layout { grid-template-columns:1fr; }
+  .sidebar { display:none; }
+  .main-content { padding:16px; }
+}
+@media (max-width:600px) {
+  .stats-grid { grid-template-columns:1fr 1fr; }
+  .auth-row { grid-template-columns:1fr; }
+  .category-grid { grid-template-columns:repeat(2,1fr); }
+  .bill-table thead { display:none; }
+  .bill-table td { display:flex; justify-content:space-between; padding:8px 12px; font-size:0.8rem; }
+  .bill-table td::before { content:attr(data-label); font-weight:600; color:var(--ink-3); font-size:0.72rem; }
+}
+
+/* Loading State */
+.skeleton { background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%); background-size:200% 100%; animation:shimmer 1.2s infinite; border-radius:8px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Empty state */
+.empty-state { padding:48px 20px; text-align:center; }
+.empty-state svg { width:56px; height:56px; stroke:var(--ink-4); fill:none; stroke-width:1.3; margin:0 auto 16px; display:block; }
+.empty-state h3 { font-size:1rem; font-weight:700; margin-bottom:6px; }
+.empty-state p { font-size:0.85rem; color:var(--ink-3); }
+
+/* Confirm Dialog */
+.confirm-body p { color:var(--ink-2); font-size:0.9rem; margin-bottom:24px; }
+.confirm-actions { display:flex; gap:10px; justify-content:flex-end; }
+
+/* Tax selector */
+.tax-row { display:flex; gap:10px; align-items:flex-end; }
+.tax-row input { width:90px; flex-shrink:0; }
+.tax-select { flex:1; }
+
+/* Mobile bottom nav */
+.mobile-nav { display:none; }
+@media (max-width:900px) {
+  .mobile-nav { 
+    display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface);
+    border-top:1px solid var(--border); padding:8px 0 calc(8px + env(safe-area-inset-bottom));
+    z-index:500; box-shadow:0 -4px 20px rgba(0,0,0,0.08);
+  }
+  .mob-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px; color:var(--ink-4); transition:color 0.15s; }
+  .mob-nav-item.active { color:var(--accent); }
+  .mob-nav-item svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2; }
+  .mob-nav-item span { font-size:0.65rem; font-weight:600; }
+  .main-content { padding-bottom:80px; }
+  .topbar { padding:0 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── TOAST CONTAINER ─── -->
+<div id="toast-container"></div>
+
+<!-- ─── AUTH SCREEN ─── -->
+<div id="auth-screen">
+  <div class="auth-grid-bg"></div>
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M3 3h18v4H3z"/><path d="M3 7l2 14h14l2-14"/><path d="M9 11h6"/></svg>
+      </div>
+      <h1>UniPOS</h1>
+      <p>Universal Point of Sale — Built for Every Business</p>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign In</div>
+      <div class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create Account</div>
+    </div>
+    <div id="signin-form">
+      <div class="auth-field-group">
+        <label>Email Address</label>
+        <input id="auth-email" type="email" placeholder="you@business.com" autocomplete="email">
+      </div>
+      <div class="auth-field-group">
+        <label>Password</label>
+        <input id="auth-pass" type="password" placeholder="Your password" autocomplete="current-password">
+      </div>
+      <button class="btn-auth" onclick="signIn()">Sign In to UniPOS</button>
+    </div>
+    <div id="signup-form" class="hide">
+      <div class="auth-field-group">
+        <label>Email Address</label>
+        <input id="su-email" type="email" placeholder="you@business.com">
+      </div>
+      <div class="auth-field-group">
+        <label>Password</label>
+        <input id="su-pass" type="password" placeholder="Min. 8 characters">
+      </div>
+      <div class="auth-field-group">
+        <label>Confirm Password</label>
+        <input id="su-pass2" type="password" placeholder="Repeat password">
+      </div>
+      <button class="btn-auth" onclick="signUp()">Create Account</button>
+    </div>
+    <p class="auth-link" id="auth-link-text">Don't have an account? <span onclick="switchAuthTab('signup')">Create one free</span></p>
+  </div>
+</div>
+
+<!-- ─── ONBOARDING SCREEN ─── -->
+<div id="onboarding-screen" class="hide">
+  <div class="auth-grid-bg"></div>
+  <div class="onboarding-card">
+    <div class="onboarding-header">
+      <div class="step-indicator">
+        <div class="step-dot active" id="sdot-1">1</div>
+        <div class="step-line" id="sline-1"></div>
+        <div class="step-dot pending" id="sdot-2">2</div>
+        <div class="step-line" id="sline-2"></div>
+        <div class="step-dot pending" id="sdot-3">3</div>
+      </div>
+      <h2 style="font-size:1.5rem; font-weight:800; letter-spacing:-0.02em;" id="onboard-title">Set Up Your Business</h2>
+      <p style="color:var(--ink-3); margin-top:6px; font-size:0.88rem;" id="onboard-sub">This takes less than 2 minutes. You can change everything later.</p>
+    </div>
+
+    <!-- Step 1: Business Identity -->
+    <div id="onboard-step-1">
+      <div class="onboard-field">
+        <label>Business Name *</label>
+        <input id="biz-name" placeholder="e.g. Yummy Bakery, Tech Store, Metro Pharmacy">
+      </div>
+      <div class="onboard-field">
+        <label>Business Tagline / Slogan</label>
+        <input id="biz-tagline" placeholder="e.g. Fresh Baked Daily">
+      </div>
+      <div class="onboard-field">
+        <label>Business Logo (Optional)</label>
+        <div class="logo-upload-area" id="logo-upload-area">
+          <input type="file" accept="image/*" onchange="previewLogo(this)">
+          <img class="logo-preview" id="logo-preview-img">
+          <div id="logo-placeholder">
+            <svg viewBox="0 0 24 24" style="width:32px;height:32px;stroke:var(--ink-3);fill:none;stroke-width:1.5;margin:0 auto 8px;display:block;"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <p style="font-size:0.82rem;color:var(--ink-3);">Click to upload logo</p>
+            <p class="text-xs text-muted" style="margin-top:4px">PNG, JPG up to 2MB</p>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-full" onclick="onboardNext(1)">Continue</button>
+    </div>
+
+    <!-- Step 2: Business Category & Details -->
+    <div id="onboard-step-2" class="hide">
+      <div class="onboard-field">
+        <label>Business Category *</label>
+        <div class="category-grid" id="category-grid">
+          <div class="cat-option" onclick="selectCategory(this,'Bakery & Café')">
+            <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            Bakery & Café
+          </div>
+          <div class="cat-option" onclick="selectCategory(this,'Retail & Fashion')">
+            <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            Retail & Fashion
+          </div>
+          <div class="cat-option" onclick="selectCategory(this,'Restaurant & Food')">
+            <svg viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+            Restaurant & Food
+          </div>
+          <div class="cat-option" onclick="selectCategory(this,'Pharmacy & Health')">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Pharmacy & Health
+          </div>
+          <div class="cat-option" onclick="selectCategory(this,'Electronics & Tech')">
+            <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            Electronics & Tech
+          </div>
+          <div class="cat-option" onclick="selectCategory(this,'General Store')">
+            <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            General Store
+          </div>
+        </div>
+        <input id="biz-category" type="hidden">
+      </div>
+      <div class="onboard-field" style="margin-top:20px">
+        <label>GST / Tax Number (Optional)</label>
+        <input id="biz-gst" placeholder="e.g. 29ABCDE1234F1Z5">
+      </div>
+      <div class="onboard-field">
+        <label>Phone Number</label>
+        <input id="biz-phone" type="tel" placeholder="+91 98765 43210">
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button class="btn btn-ghost btn-lg" style="flex:1" onclick="onboardBack(2)">Back</button>
+        <button class="btn btn-primary btn-lg" style="flex:2" onclick="onboardNext(2)">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Address & Preferences -->
+    <div id="onboard-step-3" class="hide">
+      <div class="onboard-field">
+        <label>Business Address</label>
+        <textarea id="biz-address" placeholder="Street, City, State, PIN Code" rows="2" style="resize:none;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);width:100%;font-family:var(--font);font-size:0.9rem;outline:none;" onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px var(--accent-glow)'" onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"></textarea>
+      </div>
+      <div class="onboard-field">
+        <label>Currency Symbol</label>
+        <select id="biz-currency">
+          <option value="₹">₹ — Indian Rupee (INR)</option>
+          <option value="$">$ — US Dollar (USD)</option>
+          <option value="€">€ — Euro (EUR)</option>
+          <option value="£">£ — British Pound (GBP)</option>
+          <option value="¥">¥ — Japanese Yen (JPY)</option>
+          <option value="AED">AED — UAE Dirham</option>
+          <option value="SAR">SAR — Saudi Riyal</option>
+          <option value="SGD">SGD — Singapore Dollar</option>
+        </select>
+      </div>
+      <div class="onboard-field">
+        <label>Default Tax Rate (%)</label>
+        <input id="biz-tax" type="number" value="0" min="0" max="100" placeholder="0">
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button class="btn btn-ghost btn-lg" style="flex:1" onclick="onboardBack(3)">Back</button>
+        <button class="btn btn-success btn-lg" style="flex:2" onclick="finishOnboarding()">Launch UniPOS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ─── -->
+<div id="app-screen" class="hide">
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="biz-logo-circle" id="topbar-logo">
+        <span id="topbar-logo-initials"></span>
+        <img id="topbar-logo-img" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:10px;">
+      </div>
+      <div class="biz-info">
+        <h3 id="topbar-biz-name">Business</h3>
+        <small id="topbar-biz-cat">Category</small>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <div id="cart-count-badge" class="badge badge-blue hide">
+        <span id="cart-count-num">0</span> items in cart
+      </div>
+      <div class="user-pill" onclick="openDropdown()">
+        <div class="user-avatar" id="user-avatar-initials">U</div>
+        <span style="font-size:0.82rem;font-weight:600;" id="user-email-short">User</span>
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:var(--ink-3);fill:none;stroke-width:2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="nav-section"><span class="nav-section-label">Point of Sale</span></div>
+      <a class="nav-item active" id="nav-pos" onclick="showPage('pos',this)">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        New Transaction
+      </a>
+      <a class="nav-item" id="nav-records" onclick="showPage('records',this)">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Sales & Analytics
+      </a>
+      <div class="nav-section" style="margin-top:8px"><span class="nav-section-label">Management</span></div>
+      <a class="nav-item" id="nav-inventory" onclick="showPage('inventory',this)">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Inventory
+        <span class="nav-badge" id="nav-stock-badge" style="display:none">!</span>
+      </a>
+      <a class="nav-item" id="nav-settings" onclick="showPage('settings',this)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+      <div class="sidebar-footer">
+        <a class="nav-item" onclick="confirmLogout()" style="color:var(--red)">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </a>
+      </div>
+    </aside>
+
+    <!-- Page Content -->
+    <main class="main-content">
+
+      <!-- ── POS PAGE ── -->
+      <div id="page-pos">
+        <div class="page-header">
+          <div class="flex-between">
+            <div>
+              <h1>New Transaction</h1>
+              <p>Select items and process a sale</p>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-ghost btn-sm" onclick="clearCart()">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                Clear Cart
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="pos-layout">
+          <div>
+            <div class="search-wrap">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search products by name..." oninput="searchProducts(this.value)" id="pos-search">
+            </div>
+            <div id="product-grid" class="product-grid"></div>
+            <div id="product-empty" class="empty-state hide">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <h3>No products found</h3>
+              <p>Try a different search or add items in Inventory</p>
+            </div>
+          </div>
+          <div class="cart-panel">
+            <div class="cart-card card">
+              <div class="cart-header">
+                <div class="flex-between">
+                  <h3>Current Sale</h3>
+                  <span class="badge badge-blue" id="cart-item-count" style="display:none">0 items</span>
+                </div>
+                <div class="customer-input-wrap" style="margin-top:14px">
+                  <label>Customer Name</label>
+                  <input id="customer-name" placeholder="Walk-in customer" style="margin-top:0">
+                </div>
+              </div>
+              <div class="cart-body">
+                <div class="cart-empty" id="cart-empty">
+                  <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                  <span style="font-size:0.82rem">No items added yet</span>
+                </div>
+                <div id="cart-items-list"></div>
+              </div>
+              <div class="cart-footer">
+                <div class="cart-totals">
+                  <div class="cart-total-row"><span>Subtotal</span><span class="amount font-mono" id="cart-subtotal">₹0.00</span></div>
+                  <div class="cart-total-row" id="tax-row" style="display:none"><span>Tax (<span id="tax-rate-label">0</span>%)</span><span class="amount font-mono" id="cart-tax">₹0.00</span></div>
+                  <div class="cart-total-row" id="discount-row-display" style="display:none"><span>Discount</span><span class="amount font-mono" style="color:var(--green)" id="cart-discount-display">-₹0.00</span></div>
+                  <div class="cart-total-row grand"><span>Total</span><span class="amount" id="cart-grand-total">₹0.00</span></div>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                  <div style="flex:1">
+                    <label style="font-size:0.7rem">Discount</label>
+                    <input id="discount-input" type="number" min="0" placeholder="0" oninput="recalcCart()" style="margin-top:2px;height:36px;padding:6px 10px;">
+                  </div>
+                  <div style="flex:1">
+                    <label style="font-size:0.7rem">Type</label>
+                    <select id="discount-type" onchange="recalcCart()" style="margin-top:2px;height:36px;padding:6px 10px;">
+                      <option value="flat">Flat (₹)</option>
+                      <option value="percent">Percent (%)</option>
+                    </select>
+                  </div>
+                </div>
+                <button class="btn btn-success btn-full btn-lg" onclick="processSale()">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Process &amp; Print Bill
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RECORDS PAGE ── -->
+      <div id="page-records" class="hide">
+        <div class="page-header">
+          <div class="flex-between">
+            <div>
+              <h1>Sales &amp; Analytics</h1>
+              <p>Track performance and bill history</p>
+            </div>
+            <div class="flex gap-8">
+              <select id="chart-range" onchange="renderChartRange()" style="width:auto;padding:8px 32px 8px 12px;font-size:0.83rem">
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="all">All time</option>
+              </select>
+              <button class="btn btn-danger btn-sm" onclick="confirmDeleteAll()">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:var(--accent-light);color:var(--accent)">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="stat-value" id="stat-revenue">₹0</div>
+            <div class="stat-label">Total Revenue</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:var(--green-bg);color:var(--green)">
+              <svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </div>
+            <div class="stat-value" id="stat-profit">₹0</div>
+            <div class="stat-label">Net Profit</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:var(--amber-bg);color:var(--amber)">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="stat-value" id="stat-bills">0</div>
+            <div class="stat-label">Total Bills</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#fdf4ff;color:#7c3aed">
+              <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="stat-value" id="stat-customers">0</div>
+            <div class="stat-label">Customers Served</div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Revenue &amp; Profit Trend</h3>
+          <p>Daily performance overview</p>
+          <div class="chart-wrap"><canvas id="perf-chart"></canvas></div>
+        </div>
+        <div class="card" style="overflow:hidden">
+          <div style="padding:20px 24px;border-bottom:1px solid var(--border);" class="flex-between">
+            <h3 style="font-size:1rem;font-weight:700">Bill Archive</h3>
+            <div class="flex gap-8">
+              <input type="text" placeholder="Search bills..." id="bill-search" oninput="filterBills(this.value)" style="width:200px;padding:8px 12px;">
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="bill-table" id="bill-table">
+              <thead>
+                <tr>
+                  <th>Bill #</th>
+                  <th>Customer</th>
+                  <th>Date &amp; Time</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Profit</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bill-tbody"></tbody>
+            </table>
+            <div id="bills-empty" class="empty-state hide">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              <h3>No bills yet</h3>
+              <p>Complete a transaction to see it here</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── INVENTORY PAGE ── -->
+      <div id="page-inventory" class="hide">
+        <div class="page-header">
+          <h1>Inventory</h1>
+          <p>Manage your products and stock</p>
+        </div>
+        <div class="inventory-layout">
+          <div class="inventory-form-card card card-body">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:20px" id="inv-form-title">Add New Product</h3>
+            <input type="hidden" id="edit-item-id">
+            <div style="margin-bottom:14px">
+              <label>Product Name *</label>
+              <input id="inv-name" placeholder="Enter product name">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div>
+                <label>Cost Price</label>
+                <input id="inv-cost" type="number" min="0" placeholder="0.00">
+              </div>
+              <div>
+                <label>Selling Price *</label>
+                <input id="inv-price" type="number" min="0" placeholder="0.00">
+              </div>
+            </div>
+            <div style="margin-bottom:14px">
+              <label>Stock Quantity</label>
+              <input id="inv-stock" type="number" min="0" placeholder="Leave blank = unlimited">
+            </div>
+            <div style="margin-bottom:20px">
+              <label>Product Image</label>
+              <div class="logo-upload-area" style="padding:16px">
+                <input type="file" accept="image/*" onchange="previewProductImg(this)">
+                <img id="inv-img-preview" style="max-width:100%;max-height:80px;object-fit:contain;border-radius:8px;display:none;margin:0 auto;">
+                <div id="inv-img-placeholder">
+                  <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:var(--ink-3);fill:none;stroke-width:1.5;margin:0 auto 4px;display:block;"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                  <p style="font-size:0.75rem;color:var(--ink-3)">Upload image</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-primary btn-full" onclick="saveProduct()" id="inv-save-btn">
+                <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Product
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="cancelEdit()" id="inv-cancel-btn" style="display:none">Cancel</button>
+            </div>
+          </div>
+          <div class="card" style="overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border);" class="flex-between">
+              <h3 style="font-size:0.95rem;font-weight:700">Product List</h3>
+              <input type="text" placeholder="Search inventory..." id="inv-search" oninput="filterInventory(this.value)" style="width:180px;padding:8px 12px;font-size:0.82rem">
+            </div>
+            <div style="overflow-x:auto">
+              <table class="inventory-table" id="inv-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Cost</th>
+                    <th>Price</th>
+                    <th>Margin</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="inv-tbody"></tbody>
+              </table>
+              <div id="inv-empty" class="empty-state hide">
+                <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                <h3>No products yet</h3>
+                <p>Add your first product using the form on the left</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS PAGE ── -->
+      <div id="page-settings" class="hide">
+        <div class="page-header">
+          <h1>Settings</h1>
+          <p>Manage your business profile and preferences</p>
+        </div>
+        <div class="settings-layout">
+          <div class="settings-nav">
+            <div class="settings-nav-item active" onclick="showSettingsSection('profile', this)">
+              <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              Business Profile
+            </div>
+            <div class="settings-nav-item" onclick="showSettingsSection('billing', this)">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              Invoice Settings
+            </div>
+            <div class="settings-nav-item" onclick="showSettingsSection('account', this)">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Account
+            </div>
+          </div>
+          <div>
+            <div id="settings-profile" class="settings-section active">
+              <div class="settings-group">
+                <h3>Business Identity</h3>
+                <p>Your business information shown on invoices and receipts</p>
+                <div style="margin-bottom:16px">
+                  <label>Business Name</label>
+                  <input id="s-biz-name" placeholder="Business name">
+                </div>
+                <div style="margin-bottom:16px">
+                  <label>Tagline / Slogan</label>
+                  <input id="s-biz-tagline" placeholder="Optional tagline">
+                </div>
+                <div style="margin-bottom:16px">
+                  <label>Business Address</label>
+                  <textarea id="s-biz-address" rows="2" style="resize:none;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius);width:100%;font-family:var(--font);font-size:0.9rem;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+                  <div>
+                    <label>Phone</label>
+                    <input id="s-biz-phone" type="tel">
+                  </div>
+                  <div>
+                    <label>GST / Tax No.</label>
+                    <input id="s-biz-gst">
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+                  <div>
+                    <label>Currency</label>
+                    <select id="s-biz-currency">
+                      <option value="₹">₹ Indian Rupee</option>
+                      <option value="$">$ US Dollar</option>
+                      <option value="€">€ Euro</option>
+                      <option value="£">£ British Pound</option>
+                      <option value="¥">¥ Japanese Yen</option>
+                      <option value="AED">AED Dirham</option>
+                      <option value="SAR">SAR Riyal</option>
+                      <option value="SGD">SGD Dollar</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Default Tax Rate (%)</label>
+                    <input id="s-biz-tax" type="number" min="0" max="100">
+                  </div>
+                </div>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+              </div>
+            </div>
+
+            <div id="settings-billing" class="settings-section">
+              <div class="settings-group">
+                <h3>Invoice Preferences</h3>
+                <p>Customize how your invoices look and what they include</p>
+                <div class="settings-row">
+                  <div class="settings-row-label">
+                    <h4>Show Logo on Invoice</h4>
+                    <p>Display your business logo at the top of printed receipts</p>
+                  </div>
+                  <label class="toggle"><input type="checkbox" id="s-show-logo" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row">
+                  <div class="settings-row-label">
+                    <h4>Show GST Number</h4>
+                    <p>Print your GST/Tax registration number on receipts</p>
+                  </div>
+                  <label class="toggle"><input type="checkbox" id="s-show-gst" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row">
+                  <div class="settings-row-label">
+                    <h4>Show Tax Breakdown</h4>
+                    <p>Itemize tax amounts separately on the bill</p>
+                  </div>
+                  <label class="toggle"><input type="checkbox" id="s-show-tax-breakdown" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row" style="border:none;padding-bottom:0">
+                  <div class="settings-row-label">
+                    <h4>Thank You Message</h4>
+                    <p>Custom footer message on receipts</p>
+                  </div>
+                  <input id="s-thank-you" style="width:200px" value="Thank you for your business!" placeholder="Receipt footer text">
+                </div>
+              </div>
+              <div style="margin-top:16px">
+                <button class="btn btn-primary" onclick="saveSettings()">Save Invoice Settings</button>
+              </div>
+            </div>
+
+            <div id="settings-account" class="settings-section">
+              <div class="settings-group">
+                <h3>Account Details</h3>
+                <p>Your UniPOS account information</p>
+                <div class="settings-row">
+                  <div class="settings-row-label"><h4>Email Address</h4></div>
+                  <span id="s-account-email" style="font-size:0.85rem;color:var(--ink-2);font-family:var(--mono)">-</span>
+                </div>
+                <div class="settings-row" style="border:none;padding-bottom:0">
+                  <div class="settings-row-label">
+                    <h4>Data Management</h4>
+                    <p>Permanently delete all sales data</p>
+                  </div>
+                  <button class="btn btn-danger btn-sm" onclick="confirmDeleteAll()">Delete All Data</button>
+                </div>
+              </div>
+              <div class="settings-group">
+                <h3>Sign Out</h3>
+                <p>Sign out of your UniPOS account on this device</p>
+                <button class="btn btn-ghost" onclick="confirmLogout()">
+                  <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Mobile Nav -->
+  <nav class="mobile-nav">
+    <div class="mob-nav-item active" id="mob-pos" onclick="showPage('pos',null,'mob-pos')">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span>POS</span>
+    </div>
+    <div class="mob-nav-item" id="mob-records" onclick="showPage('records',null,'mob-records')">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Reports</span>
+    </div>
+    <div class="mob-nav-item" id="mob-inventory" onclick="showPage('inventory',null,'mob-inventory')">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      <span>Stock</span>
+    </div>
+    <div class="mob-nav-item" id="mob-settings" onclick="showPage('settings',null,'mob-settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Settings</span>
+    </div>
+  </nav>
+</div>
+
+<!-- ─── CONFIRM MODAL ─── -->
+<div class="overlay" id="confirm-overlay">
+  <div class="modal" style="max-width:420px">
+    <div style="width:44px;height:44px;background:var(--red-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+      <svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:var(--red);fill:none;stroke-width:2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:8px" id="confirm-title">Confirm Action</h3>
+    <p class="confirm-body" id="confirm-msg"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── RECEIPT FRAME ─── -->
+<div id="receipt-frame">
+  <div class="r-logo" id="r-logo-wrap"></div>
+  <div class="r-biz-name" id="r-biz-name"></div>
+  <div class="r-tagline" id="r-tagline"></div>
+  <div class="r-address" id="r-address"></div>
+  <div class="r-dash"></div>
+  <table class="r-meta" id="r-meta-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px">
+    <tr><td>Invoice No.</td><td id="r-invoice-no" style="font-weight:600;text-align:right"></td></tr>
+    <tr><td>Date &amp; Time</td><td id="r-date" style="text-align:right"></td></tr>
+    <tr><td>Customer</td><td id="r-customer" style="font-weight:600;text-align:right"></td></tr>
+    <tr id="r-gst-row"><td>GSTIN</td><td id="r-gst-no" style="text-align:right"></td></tr>
+    <tr id="r-phone-row"><td>Phone</td><td id="r-phone-no" style="text-align:right"></td></tr>
+  </table>
+  <div class="r-dash"></div>
+  <div class="r-items-header"><span>Item</span><span>Qty x Rate = Amount</span></div>
+  <div id="r-items-list"></div>
+  <div class="r-dash"></div>
+  <div class="r-totals-row"><span>Subtotal</span><span id="r-subtotal"></span></div>
+  <div class="r-totals-row" id="r-tax-line" style="display:none"><span>Tax</span><span id="r-tax-amount"></span></div>
+  <div class="r-totals-row" id="r-discount-line" style="display:none"><span>Discount</span><span id="r-discount-amount"></span></div>
+  <div class="r-totals-row grand"><span>TOTAL</span><span id="r-total"></span></div>
+  <div class="r-dash"></div>
+  <div class="r-footer" id="r-footer-msg"></div>
+  <div class="r-bill-no" id="r-bill-no-footer"></div>
+</div>
+
+<script>
+// ─── FIREBASE CONFIG ─────────────────────────────────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyByfEQ_DUsxJ-ydsCLmMAKoZS6HkuK_Zq0",
+  authDomain: "shadnagar-26829.firebaseapp.com",
+  databaseURL: "https://shadnagar-26829-default-rtdb.firebaseio.com",
+  projectId: "shadnagar-26829",
+  storageBucket: "shadnagar-26829.firebasestorage.app",
+  messagingSenderId: "613053955405",
+  appId: "1:613053955405:web:ba3e4722aed987e55b4b04",
+  measurementId: "G-NGCVK67H18"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(), db = firebase.database();
+
+// ─── APP STATE ───────────────────────────────────────────────────────────────
+let products = [], cart = [], allSales = [], perfChart = null;
+let bizData = {}, logoBase64 = '', onboardLogoBase64 = '';
+let currentUser = null, currentUid = null;
+let billCounter = 1;
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+const cur = () => bizData.currency || '₹';
+const fmt = n => cur() + parseFloat(n || 0).toFixed(2);
+const uid = () => currentUid;
+
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { success:'M22 11.08V12a10 10 0 1 1-5.93-9.14', error:'M18 6 6 18M6 6l12 12', info:'M12 16v-4M12 8h.01' };
+  el.innerHTML = `<div class="toast-dot"></div>${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function genBillNo() {
+  const d = new Date(), y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `INV-${y}${m}${day}-${String(billCounter++).padStart(4,'0')}`;
+}
+
+function resizeImage(file, maxW=300, maxH=300, quality=0.75) {
+  return new Promise(res => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        const ratio = Math.min(maxW/w, maxH/h, 1);
+        w = Math.round(w*ratio); h = Math.round(h*ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function switchAuthTab(t) {
+  document.getElementById('signin-form').classList.toggle('hide', t!=='signin');
+  document.getElementById('signup-form').classList.toggle('hide', t!=='signup');
+  document.getElementById('tab-signin').classList.toggle('active', t==='signin');
+  document.getElementById('tab-signup').classList.toggle('active', t==='signup');
+  const link = document.getElementById('auth-link-text');
+  if(t==='signin') link.innerHTML = `Don't have an account? <span onclick="switchAuthTab('signup')">Create one free</span>`;
+  else link.innerHTML = `Already have an account? <span onclick="switchAuthTab('signin')">Sign in</span>`;
+}
+
+function signIn() {
+  const e = document.getElementById('auth-email').value.trim();
+  const p = document.getElementById('auth-pass').value;
+  if(!e || !p) return toast('Please enter email and password','error');
+  auth.signInWithEmailAndPassword(e, p)
+    .catch(err => toast(err.message, 'error'));
+}
+
+function signUp() {
+  const e = document.getElementById('su-email').value.trim();
+  const p = document.getElementById('su-pass').value;
+  const p2 = document.getElementById('su-pass2').value;
+  if(!e || !p) return toast('Please fill all fields','error');
+  if(p !== p2) return toast('Passwords do not match','error');
+  if(p.length < 8) return toast('Password must be at least 8 characters','error');
+  auth.createUserWithEmailAndPassword(e, p)
+    .catch(err => toast(err.message, 'error'));
+}
+
+auth.onAuthStateChanged(user => {
+  if(user) {
+    currentUser = user; currentUid = user.uid;
+    db.ref(`bizdata/${currentUid}`).once('value', snap => {
+      const data = snap.val();
+      if(!data || !data.name) {
+        // New user — show onboarding
+        document.getElementById('auth-screen').classList.add('hide');
+        document.getElementById('onboarding-screen').classList.remove('hide');
+      } else {
+        bizData = data;
+        launchApp();
+      }
+    });
+  }
+});
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+let selectedCategory = '';
+
+function previewLogo(input) {
+  const file = input.files[0]; if(!file) return;
+  resizeImage(file, 200, 200, 0.8).then(b64 => {
+    onboardLogoBase64 = b64;
+    const img = document.getElementById('logo-preview-img');
+    img.src = b64; img.style.display = 'block';
+    document.getElementById('logo-placeholder').style.display = 'none';
+  });
+}
+
+function selectCategory(el, cat) {
+  document.querySelectorAll('.cat-option').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCategory = cat;
+  document.getElementById('biz-category').value = cat;
+}
+
+function onboardNext(step) {
+  if(step === 1) {
+    const name = document.getElementById('biz-name').value.trim();
+    if(!name) return toast('Please enter your business name','error');
+    setStep(2);
+  } else if(step === 2) {
+    if(!selectedCategory && !document.getElementById('biz-category').value) return toast('Please select a category','error');
+    setStep(3);
+  }
+}
+
+function onboardBack(step) {
+  setStep(step - 1);
+}
+
+function setStep(n) {
+  [1,2,3].forEach(s => {
+    document.getElementById(`onboard-step-${s}`).classList.toggle('hide', s !== n);
+    const dot = document.getElementById(`sdot-${s}`);
+    if(s < n) { dot.className = 'step-dot done'; dot.innerHTML = '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#fff;fill:none;stroke-width:3"><polyline points="20 6 9 17 4 12"/></svg>'; }
+    else if(s === n) { dot.className = 'step-dot active'; dot.textContent = s; }
+    else { dot.className = 'step-dot pending'; dot.textContent = s; }
+    if(s < 3) document.getElementById(`sline-${s}`).className = 'step-line' + (s < n ? ' done' : '');
+  });
+  const titles = {1:'Set Up Your Business',2:'Tell Us More',3:'Final Details'};
+  document.getElementById('onboard-title').textContent = titles[n];
+}
+
+async function finishOnboarding() {
+  const name = document.getElementById('biz-name').value.trim();
+  if(!name) return toast('Business name is required','error');
+  const data = {
+    name, logo: onboardLogoBase64,
+    tagline: document.getElementById('biz-tagline').value.trim(),
+    category: selectedCategory || document.getElementById('biz-category').value || 'General',
+    gst: document.getElementById('biz-gst').value.trim(),
+    phone: document.getElementById('biz-phone').value.trim(),
+    address: document.getElementById('biz-address').value.trim(),
+    currency: document.getElementById('biz-currency').value,
+    tax: parseFloat(document.getElementById('biz-tax').value) || 0,
+    thankYou: 'Thank you for your business!',
+    showLogo: true, showGst: true, showTaxBreakdown: true,
+  };
+  await db.ref(`bizdata/${currentUid}`).set(data);
+  bizData = data;
+  document.getElementById('onboarding-screen').classList.add('hide');
+  launchApp();
+  toast('Welcome to UniPOS! Your workspace is ready.', 'success');
+}
+
+// ─── APP LAUNCH ───────────────────────────────────────────────────────────────
+function launchApp() {
+  document.getElementById('auth-screen').classList.add('hide');
+  document.getElementById('onboarding-screen').classList.add('hide');
+  document.getElementById('app-screen').classList.remove('hide');
+  applyBizBranding();
+  syncData();
+  loadSettings();
+}
+
+function applyBizBranding() {
+  const el = document.getElementById('topbar-logo');
+  const nameEl = document.getElementById('topbar-biz-name');
+  const catEl = document.getElementById('topbar-biz-cat');
+  const initEls = document.querySelectorAll('#topbar-logo-initials');
+  nameEl.textContent = bizData.name || 'Business';
+  catEl.textContent = bizData.category || '';
+  el.querySelector('span').textContent = (bizData.name || 'B').charAt(0).toUpperCase();
+  if(bizData.logo) {
+    const img = document.getElementById('topbar-logo-img');
+    img.src = bizData.logo; img.style.display = 'block';
+    el.querySelector('span').style.display = 'none';
+  }
+  // Color from category
+  const colors = {'Bakery & Café':'#d97706','Retail & Fashion':'#7c3aed','Restaurant & Food':'#dc2626','Pharmacy & Health':'#059669','Electronics & Tech':'#2563eb','General Store':'#0891b2'};
+  el.style.background = colors[bizData.category] || 'var(--accent)';
+  // User info
+  document.getElementById('user-avatar-initials').textContent = (currentUser.email||'U').charAt(0).toUpperCase();
+  document.getElementById('user-email-short').textContent = (currentUser.email||'').split('@')[0];
+  document.getElementById('s-account-email').textContent = currentUser.email || '';
+}
+
+// ─── DATA SYNC ────────────────────────────────────────────────────────────────
+function syncData() {
+  db.ref(`products/${uid()}`).on('value', snap => {
+    products = [];
+    snap.forEach(c => products.push({id: c.key, ...c.val()}));
+    renderProductGrid();
+    renderInventory();
+  });
+  db.ref(`sales/${uid()}`).on('value', snap => {
+    allSales = [];
+    snap.forEach(c => allSales.push({id: c.key, ...c.val()}));
+    updateStats();
+    renderBillTable();
+    renderChart();
+  });
+  db.ref(`billcounter/${uid()}`).once('value', snap => {
+    if(snap.val()) billCounter = snap.val();
+  });
+}
+
+// ─── POS ─────────────────────────────────────────────────────────────────────
+function renderProductGrid(filtered) {
+  const list = filtered !== undefined ? filtered : products;
+  const grid = document.getElementById('product-grid');
+  const empty = document.getElementById('product-empty');
+  if(!list.length) {
+    grid.innerHTML = '';
+    empty.classList.remove('hide');
+    return;
+  }
+  empty.classList.add('hide');
+  grid.innerHTML = list.map(p => `
+    <div class="product-card" onclick="addToCart('${p.id}')">
+      ${p.image ? `<img class="product-thumb" src="${p.image}" alt="${p.name}">` : `<div class="product-thumb-placeholder"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`}
+      <div class="product-info">
+        <h4>${p.name}</h4>
+        <div class="product-price">${fmt(p.price)}</div>
+      </div>
+      <div class="add-badge">+</div>
+    </div>`).join('');
+}
+
+function searchProducts(val) {
+  const f = products.filter(p => p.name.toLowerCase().includes(val.toLowerCase()));
+  renderProductGrid(f);
+}
+
+function addToCart(id) {
+  const p = products.find(x => x.id === id);
+  if(!p) return;
+  const existing = cart.find(x => x.id === id);
+  if(existing) {
+    existing.qty++;
+  } else {
+    cart.push({...p, qty: 1});
+  }
+  renderCart();
+  toast(`${p.name} added to cart`, 'success');
+}
+
+function changeQty(id, delta) {
+  const idx = cart.findIndex(x => x.id === id);
+  if(idx === -1) return;
+  cart[idx].qty += delta;
+  if(cart[idx].qty <= 0) cart.splice(idx, 1);
+  renderCart();
+}
+
+function removeFromCart(id) {
+  cart = cart.filter(x => x.id !== id);
+  renderCart();
+}
+
+function clearCart() {
+  cart = [];
+  document.getElementById('customer-name').value = '';
+  document.getElementById('discount-input').value = '';
+  renderCart();
+}
+
+function renderCart() {
+  const list = document.getElementById('cart-items-list');
+  const empty = document.getElementById('cart-empty');
+  const badge = document.getElementById('cart-item-count');
+  const topBadge = document.getElementById('cart-count-badge');
+  const topNum = document.getElementById('cart-count-num');
+  const totalItems = cart.reduce((a,b) => a+b.qty, 0);
+
+  if(!cart.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hide');
+    badge.style.display = 'none';
+    topBadge.classList.add('hide');
+  } else {
+    empty.classList.add('hide');
+    badge.style.display = 'inline-flex';
+    badge.textContent = `${totalItems} item${totalItems>1?'s':''}`;
+    topBadge.classList.remove('hide');
+    topNum.textContent = totalItems;
+    list.innerHTML = cart.map(item => `
+      <div class="cart-item">
+        <div class="cart-item-name">
+          <span>${item.name}</span>
+          <small>${fmt(item.price)} each</small>
+        </div>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty('${item.id}',-1)">−</button>
+          <span class="qty-val">${item.qty}</span>
+          <button class="qty-btn" onclick="changeQty('${item.id}',+1)">+</button>
+        </div>
+        <span class="cart-item-price">${fmt(item.price * item.qty)}</span>
+        <button class="remove-btn" onclick="removeFromCart('${item.id}')">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`).join('');
+  }
+  recalcCart();
+}
+
+function recalcCart() {
+  const subtotal = cart.reduce((a,b) => a + b.price * b.qty, 0);
+  const taxRate = parseFloat(bizData.tax) || 0;
+  const taxAmt = subtotal * taxRate / 100;
+  const discountVal = parseFloat(document.getElementById('discount-input').value) || 0;
+  const discountType = document.getElementById('discount-type').value;
+  const discountAmt = discountType === 'percent' ? subtotal * discountVal / 100 : discountVal;
+  const grand = Math.max(0, subtotal + taxAmt - discountAmt);
+
+  document.getElementById('cart-subtotal').textContent = fmt(subtotal);
+  document.getElementById('cart-grand-total').textContent = fmt(grand);
+
+  const taxRow = document.getElementById('tax-row');
+  if(taxRate > 0) {
+    taxRow.style.display = 'flex';
+    document.getElementById('tax-rate-label').textContent = taxRate;
+    document.getElementById('cart-tax').textContent = fmt(taxAmt);
+  } else taxRow.style.display = 'none';
+
+  const discRow = document.getElementById('discount-row-display');
+  if(discountAmt > 0) {
+    discRow.style.display = 'flex';
+    document.getElementById('cart-discount-display').textContent = `-${fmt(discountAmt)}`;
+  } else discRow.style.display = 'none';
+}
+
+async function processSale() {
+  if(!cart.length) return toast('Add items to cart first','error');
+  const subtotal = cart.reduce((a,b) => a + b.price * b.qty, 0);
+  const taxRate = parseFloat(bizData.tax) || 0;
+  const taxAmt = subtotal * taxRate / 100;
+  const discountVal = parseFloat(document.getElementById('discount-input').value) || 0;
+  const discountType = document.getElementById('discount-type').value;
+  const discountAmt = discountType === 'percent' ? subtotal * discountVal / 100 : discountVal;
+  const total = Math.max(0, subtotal + taxAmt - discountAmt);
+  const profit = cart.reduce((a,b) => a + (b.price - (b.cost||0)) * b.qty, 0) - discountAmt;
+  const billNo = genBillNo();
+
+  const sale = {
+    billNo,
+    customer: document.getElementById('customer-name').value.trim() || 'Walk-in Customer',
+    date: new Date().toISOString(),
+    subtotal, taxAmt, taxRate, discountAmt, total,
+    profit,
+    items: cart.map(i => ({name: i.name, price: i.price, cost: i.cost||0, qty: i.qty})),
+  };
+
+  await db.ref(`sales/${uid()}`).push(sale);
+  await db.ref(`billcounter/${uid()}`).set(billCounter);
+  printReceipt(sale);
+  clearCart();
+  toast(`Bill ${billNo} saved & printed`, 'success');
+}
+
+// ─── RECEIPT PRINT ────────────────────────────────────────────────────────────
+function printReceipt(sale) {
+  const settings = bizData;
+
+  // Logo
+  const logoWrap = document.getElementById('r-logo-wrap');
+  if(settings.logo && settings.showLogo !== false) {
+    logoWrap.innerHTML = `<img src="${settings.logo}" style="max-width:80px;max-height:60px;object-fit:contain;margin:0 auto 4px;display:block;">`;
+  } else logoWrap.innerHTML = '';
+
+  document.getElementById('r-biz-name').textContent = settings.name || 'BUSINESS';
+  document.getElementById('r-tagline').textContent = settings.tagline || '';
+  document.getElementById('r-address').textContent = settings.address || '';
+
+  // Meta
+  document.getElementById('r-invoice-no').textContent = sale.billNo;
+  document.getElementById('r-date').textContent = new Date(sale.date).toLocaleString();
+  document.getElementById('r-customer').textContent = (sale.customer||'').toUpperCase();
+
+  const gstRow = document.getElementById('r-gst-row');
+  if(settings.gst && settings.showGst !== false) {
+    gstRow.style.display = ''; document.getElementById('r-gst-no').textContent = settings.gst;
+  } else gstRow.style.display = 'none';
+
+  const phoneRow = document.getElementById('r-phone-row');
+  if(settings.phone) {
+    phoneRow.style.display = ''; document.getElementById('r-phone-no').textContent = settings.phone;
+  } else phoneRow.style.display = 'none';
+
+  // Items
+  const c = settings.currency || '₹';
+  document.getElementById('r-items-list').innerHTML = (sale.items||[]).map(i =>
+    `<div class="r-item"><span class="r-item-name">${i.name}</span><span class="r-item-right">${i.qty} x ${c}${parseFloat(i.price).toFixed(2)} = ${c}${(i.qty*i.price).toFixed(2)}</span></div>`
+  ).join('');
+
+  // Totals
+  document.getElementById('r-subtotal').textContent = `${c}${parseFloat(sale.subtotal).toFixed(2)}`;
+  const taxLine = document.getElementById('r-tax-line');
+  if(sale.taxAmt > 0 && settings.showTaxBreakdown !== false) {
+    taxLine.style.display = 'flex';
+    document.getElementById('r-tax-amount').textContent = `${c}${parseFloat(sale.taxAmt).toFixed(2)} (${sale.taxRate}%)`;
+  } else taxLine.style.display = 'none';
+
+  const discLine = document.getElementById('r-discount-line');
+  if(sale.discountAmt > 0) {
+    discLine.style.display = 'flex';
+    document.getElementById('r-discount-amount').textContent = `-${c}${parseFloat(sale.discountAmt).toFixed(2)}`;
+  } else discLine.style.display = 'none';
+
+  document.getElementById('r-total').textContent = `${c}${parseFloat(sale.total).toFixed(2)}`;
+  document.getElementById('r-footer-msg').textContent = settings.thankYou || 'Thank you for your business!';
+  document.getElementById('r-bill-no-footer').textContent = `Powered by UniPOS`;
+
+  document.getElementById('receipt-frame').style.display = 'block';
+  setTimeout(() => {
+    window.print();
+    document.getElementById('receipt-frame').style.display = 'none';
+  }, 150);
+}
+
+function reprintBill(id) {
+  const sale = allSales.find(s => s.id === id);
+  if(sale) printReceipt(sale);
+}
+
+// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+function updateStats() {
+  const total = allSales.reduce((a,b) => a+(b.total||0), 0);
+  const profit = allSales.reduce((a,b) => a+(b.profit||0), 0);
+  const uniqueCustomers = new Set(allSales.map(s => s.customer)).size;
+  document.getElementById('stat-revenue').textContent = cur() + total.toFixed(2);
+  document.getElementById('stat-profit').textContent = cur() + profit.toFixed(2);
+  document.getElementById('stat-bills').textContent = allSales.length;
+  document.getElementById('stat-customers').textContent = uniqueCustomers;
+}
+
+function renderChart() { renderChartRange(); }
+function renderChartRange() {
+  const range = document.getElementById('chart-range')?.value || '7';
+  let sales = [...allSales].sort((a,b) => new Date(a.date)-new Date(b.date));
+  if(range !== 'all') {
+    const cutoff = new Date(Date.now() - parseInt(range)*24*3600*1000);
+    sales = sales.filter(s => new Date(s.date) >= cutoff);
+  }
+  // Group by day
+  const days = {};
+  sales.forEach(s => {
+    const d = s.date.slice(0,10);
+    if(!days[d]) days[d] = {rev:0, profit:0};
+    days[d].rev += s.total||0;
+    days[d].profit += s.profit||0;
+  });
+  const labels = Object.keys(days).map(d => d.slice(5));
+  const revData = Object.values(days).map(x => x.rev);
+  const profitData = Object.values(days).map(x => x.profit);
+
+  const ctx = document.getElementById('perf-chart')?.getContext('2d');
+  if(!ctx) return;
+  if(perfChart) perfChart.destroy();
+  perfChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Revenue', data: revData, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,0.08)', fill:true, tension:0.4, pointRadius:4, pointHoverRadius:6, borderWidth:2 },
+        { label: 'Profit', data: profitData, borderColor:'#059669', backgroundColor:'rgba(5,150,105,0.06)', fill:true, tension:0.4, pointRadius:4, pointHoverRadius:6, borderWidth:2 }
+      ]
+    },
+    options: {
+      maintainAspectRatio:false, responsive:true,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ labels:{ font:{ family:'DM Sans', size:12 }, color:'#3d3d4a', usePointStyle:true } } },
+      scales:{
+        x:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{ family:'DM Sans', size:11 }, color:'#8888a0' } },
+        y:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{ family:'DM Sans', size:11 }, color:'#8888a0', callback: v => cur()+v.toFixed(0) } }
+      }
+    }
+  });
+}
+
+function renderBillTable(filtered) {
+  const list = filtered !== undefined ? filtered : [...allSales].reverse();
+  const tbody = document.getElementById('bill-tbody');
+  const emptyEl = document.getElementById('bills-empty');
+  if(!list.length) {
+    tbody.innerHTML = '';
+    emptyEl.classList.remove('hide');
+    return;
+  }
+  emptyEl.classList.add('hide');
+  tbody.innerHTML = list.map(s => `
+    <tr>
+      <td data-label="Bill #"><span class="font-mono" style="font-size:0.78rem;color:var(--ink-3)">${s.billNo||'-'}</span></td>
+      <td data-label="Customer"><b>${s.customer||'Walk-in'}</b></td>
+      <td data-label="Date">${new Date(s.date).toLocaleString()}</td>
+      <td data-label="Items" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;color:var(--ink-2)">${(s.items||[]).map(i=>i.name+'('+i.qty+')').join(', ')}</td>
+      <td data-label="Total"><span class="font-mono" style="font-weight:700;color:var(--accent)">${fmt(s.total)}</span></td>
+      <td data-label="Profit"><span class="badge ${s.profit>=0?'badge-green':'badge-red'}">${fmt(s.profit)}</span></td>
+      <td data-label="Actions">
+        <div class="td-actions">
+          <button class="btn btn-ghost btn-sm" onclick="reprintBill('${s.id}')">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Reprint
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBill('${s.id}')">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function filterBills(v) {
+  const f = allSales.filter(s =>
+    (s.customer||'').toLowerCase().includes(v.toLowerCase()) ||
+    (s.billNo||'').toLowerCase().includes(v.toLowerCase()) ||
+    (s.items||[]).some(i => i.name.toLowerCase().includes(v.toLowerCase()))
+  );
+  renderBillTable([...f].reverse());
+}
+
+function deleteBill(id) {
+  showConfirm('Delete Bill', 'This will permanently remove this bill from your records. This cannot be undone.', () => {
+    db.ref(`sales/${uid()}/${id}`).remove();
+    toast('Bill deleted','success');
+  });
+}
+
+function confirmDeleteAll() {
+  showConfirm('Delete All Sales Data', 'All bill history, revenue, and profit data will be permanently erased. This cannot be undone.', () => {
+    db.ref(`sales/${uid()}`).remove();
+    toast('All sales data cleared','success');
+  });
+}
+
+// ─── INVENTORY ───────────────────────────────────────────────────────────────
+function previewProductImg(input) {
+  const file = input.files[0]; if(!file) return;
+  resizeImage(file).then(b64 => {
+    const img = document.getElementById('inv-img-preview');
+    img.src = b64; img.style.display = 'block';
+    document.getElementById('inv-img-placeholder').style.display = 'none';
+  });
+}
+
+async function saveProduct() {
+  const name = document.getElementById('inv-name').value.trim();
+  const price = parseFloat(document.getElementById('inv-price').value);
+  if(!name) return toast('Product name is required','error');
+  if(isNaN(price) || price < 0) return toast('Enter a valid selling price','error');
+
+  const editId = document.getElementById('edit-item-id').value;
+  const imgFile = document.querySelector('#page-inventory input[type="file"]').files[0];
+  let image = '';
+  if(imgFile) image = await resizeImage(imgFile);
+  else if(editId) {
+    const existing = products.find(p => p.id === editId);
+    if(existing) image = existing.image || '';
+  }
+
+  const data = {
+    name,
+    cost: parseFloat(document.getElementById('inv-cost').value) || 0,
+    price,
+    stock: document.getElementById('inv-stock').value !== '' ? parseInt(document.getElementById('inv-stock').value) : null,
+    image
+  };
+
+  if(editId) {
+    await db.ref(`products/${uid()}/${editId}`).update(data);
+    toast('Product updated','success');
+    cancelEdit();
+  } else {
+    await db.ref(`products/${uid()}`).push(data);
+    toast(`${name} added to inventory`,'success');
+    resetInvForm();
+  }
+}
+
+function editProduct(id) {
+  const p = products.find(x => x.id === id);
+  if(!p) return;
+  document.getElementById('edit-item-id').value = id;
+  document.getElementById('inv-name').value = p.name;
+  document.getElementById('inv-cost').value = p.cost || '';
+  document.getElementById('inv-price').value = p.price;
+  document.getElementById('inv-stock').value = p.stock !== null ? p.stock : '';
+  if(p.image) {
+    document.getElementById('inv-img-preview').src = p.image;
+    document.getElementById('inv-img-preview').style.display = 'block';
+    document.getElementById('inv-img-placeholder').style.display = 'none';
+  }
+  document.getElementById('inv-form-title').textContent = 'Edit Product';
+  document.getElementById('inv-save-btn').innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="20 6 9 17 4 12"/></svg> Save Changes';
+  document.getElementById('inv-cancel-btn').style.display = 'inline-flex';
+  showPage('inventory', document.getElementById('nav-inventory'));
+}
+
+function cancelEdit() {
+  document.getElementById('edit-item-id').value = '';
+  document.getElementById('inv-form-title').textContent = 'Add New Product';
+  document.getElementById('inv-save-btn').innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Product';
+  document.getElementById('inv-cancel-btn').style.display = 'none';
+  resetInvForm();
+}
+
+function resetInvForm() {
+  ['inv-name','inv-cost','inv-price','inv-stock'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('inv-img-preview').style.display = 'none';
+  document.getElementById('inv-img-placeholder').style.display = 'block';
+  document.querySelector('#page-inventory input[type="file"]').value = '';
+}
+
+function deleteProduct(id) {
+  showConfirm('Remove Product', 'This product will be removed from your inventory. Existing bills will not be affected.', () => {
+    db.ref(`products/${uid()}/${id}`).remove();
+    toast('Product removed','success');
+  });
+}
+
+function renderInventory(filtered) {
+  const list = filtered !== undefined ? filtered : products;
+  const tbody = document.getElementById('inv-tbody');
+  const emptyEl = document.getElementById('inv-empty');
+  if(!list.length) {
+    tbody.innerHTML = '';
+    emptyEl.classList.remove('hide');
+    return;
+  }
+  emptyEl.classList.add('hide');
+  tbody.innerHTML = list.map(p => {
+    const margin = p.cost > 0 ? ((p.price - p.cost) / p.price * 100).toFixed(0) : null;
+    const stockVal = p.stock !== null && p.stock !== undefined ? p.stock : '∞';
+    const stockClass = stockVal === '∞' ? '' : stockVal <= 5 ? 'low' : stockVal <= 0 ? 'empty' : '';
+    return `<tr>
+      <td data-label="Product">
+        <div style="display:flex;align-items:center;gap:10px">
+          ${p.image ? `<img class="item-thumb-sm" src="${p.image}">` : `<div class="item-thumb-sm" style="display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--ink-4);fill:none;stroke-width:1.5"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div>`}
+          <b>${p.name}</b>
+        </div>
+      </td>
+      <td data-label="Cost" class="font-mono">${p.cost ? fmt(p.cost) : '—'}</td>
+      <td data-label="Price" class="font-mono" style="font-weight:700;color:var(--accent)">${fmt(p.price)}</td>
+      <td data-label="Margin">${margin !== null ? `<span class="badge badge-green">${margin}%</span>` : '—'}</td>
+      <td data-label="Stock">
+        <div class="stock-level">
+          <span class="font-mono" style="font-weight:600">${stockVal}</span>
+          ${stockVal !== '∞' ? `<div class="stock-bar"><div class="stock-bar-fill ${stockClass}" style="width:${Math.min(100,(stockVal/20)*100)}%"></div></div>` : ''}
+        </div>
+      </td>
+      <td data-label="Actions">
+        <div class="td-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterInventory(v) {
+  const f = products.filter(p => p.name.toLowerCase().includes(v.toLowerCase()));
+  renderInventory(f);
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function loadSettings() {
+  if(!bizData) return;
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+  set('s-biz-name', bizData.name);
+  set('s-biz-tagline', bizData.tagline);
+  set('s-biz-address', bizData.address);
+  set('s-biz-phone', bizData.phone);
+  set('s-biz-gst', bizData.gst);
+  set('s-biz-currency', bizData.currency || '₹');
+  set('s-biz-tax', bizData.tax || 0);
+  const setChk = (id, val) => { const el = document.getElementById(id); if(el) el.checked = val !== false; };
+  setChk('s-show-logo', bizData.showLogo);
+  setChk('s-show-gst', bizData.showGst);
+  setChk('s-show-tax-breakdown', bizData.showTaxBreakdown);
+  set('s-thank-you', bizData.thankYou || 'Thank you for your business!');
+}
+
+async function saveSettings() {
+  const updates = {
+    name: document.getElementById('s-biz-name').value.trim(),
+    tagline: document.getElementById('s-biz-tagline').value.trim(),
+    address: document.getElementById('s-biz-address').value.trim(),
+    phone: document.getElementById('s-biz-phone').value.trim(),
+    gst: document.getElementById('s-biz-gst').value.trim(),
+    currency: document.getElementById('s-biz-currency').value,
+    tax: parseFloat(document.getElementById('s-biz-tax').value) || 0,
+    showLogo: document.getElementById('s-show-logo').checked,
+    showGst: document.getElementById('s-show-gst').checked,
+    showTaxBreakdown: document.getElementById('s-show-tax-breakdown').checked,
+    thankYou: document.getElementById('s-thank-you').value,
+    logo: bizData.logo || '',
+    category: bizData.category || '',
+  };
+  await db.ref(`bizdata/${uid()}`).update(updates);
+  bizData = {...bizData, ...updates};
+  applyBizBranding();
+  toast('Settings saved','success');
+}
+
+function showSettingsSection(key, el) {
+  document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.settings-nav-item').forEach(s => s.classList.remove('active'));
+  document.getElementById(`settings-${key}`).classList.add('active');
+  el.classList.add('active');
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPage(page, sidebarEl, mobileId) {
+  ['pos','records','inventory','settings'].forEach(p => {
+    document.getElementById(`page-${p}`).classList.toggle('hide', p !== page);
+  });
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.mob-nav-item').forEach(el => el.classList.remove('active'));
+  if(sidebarEl) sidebarEl.classList.add('active');
+  const navEl = document.getElementById(`nav-${page}`);
+  if(navEl) navEl.classList.add('active');
+  const mobEl = document.getElementById(`mob-${page}`) || document.getElementById(mobileId);
+  if(mobEl) mobEl.classList.add('active');
+  if(page === 'records') {
+    setTimeout(() => renderChart(), 50);
+  }
+}
+
+// ─── CONFIRM MODAL ───────────────────────────────────────────────────────────
+let _confirmCb = null;
+function showConfirm(title, msg, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-overlay').classList.add('open');
+  _confirmCb = cb;
+}
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  _confirmCb = null;
+}
+document.getElementById('confirm-ok-btn').onclick = () => { if(_confirmCb) _confirmCb(); closeConfirm(); };
+document.getElementById('confirm-overlay').onclick = e => { if(e.target === document.getElementById('confirm-overlay')) closeConfirm(); };
+
+// ─── LOGOUT ──────────────────────────────────────────────────────────────────
+function confirmLogout() {
+  showConfirm('Sign Out', 'Are you sure you want to sign out of UniPOS?', () => {
+    auth.signOut().then(() => location.reload());
+  });
+  document.getElementById('confirm-ok-btn').textContent = 'Sign Out';
+  document.getElementById('confirm-ok-btn').className = 'btn btn-primary';
+}
+
+function openDropdown() {
+  // Could add dropdown, for now show settings
+  showPage('settings', document.getElementById('nav-settings'));
+}
+
+// ─── KEYBOARD ───────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeConfirm();
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter') processSale();
+});
+</script>
+</body>
+</html>
