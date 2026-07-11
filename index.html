@@ -10,33 +10,35 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
 :root {
-  --ink: #0a0a0f;
-  --ink-2: #3d3d4a;
-  --ink-3: #8888a0;
-  --ink-4: #b8b8cc;
-  --surface: #ffffff;
-  --surface-2: #f5f5f8;
-  --surface-3: #eeeef4;
-  --border: #e2e2ec;
-  --accent: #2563eb;
-  --accent-2: #1d4ed8;
-  --accent-light: #eff6ff;
-  --accent-glow: rgba(37,99,235,0.12);
-  --green: #059669;
-  --green-bg: #ecfdf5;
-  --red: #dc2626;
-  --red-bg: #fef2f2;
-  --amber: #d97706;
-  --amber-bg: #fffbeb;
+  --ink: #f1f2f7;
+  --ink-2: #b9bccb;
+  --ink-3: #82869c;
+  --ink-4: #565a70;
+  --surface: #171a22;
+  --surface-2: #1d212b;
+  --surface-3: #262b38;
+  --border: #2c3140;
+  --accent: #c9a961;
+  --accent-2: #b0904f;
+  --accent-light: rgba(201,169,97,0.13);
+  --accent-glow: rgba(201,169,97,0.22);
+  --green: #3ddc97;
+  --green-bg: rgba(61,220,151,0.13);
+  --red: #ff6b6b;
+  --red-bg: rgba(255,107,107,0.13);
+  --amber: #ffb84d;
+  --amber-bg: rgba(255,184,77,0.13);
+  --page-bg: #0c0e13;
   --radius: 12px;
   --radius-lg: 20px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 20px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+  --shadow: 0 4px 20px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.3);
+  --shadow-lg: 0 24px 60px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35);
   --font: 'DM Sans', sans-serif;
   --mono: 'DM Mono', monospace;
   --transition: 0.18s cubic-bezier(0.4,0,0.2,1);
@@ -44,7 +46,7 @@
 
 * { margin:0; padding:0; box-sizing:border-box; }
 html { font-size:15px; }
-body { font-family: var(--font); background: var(--surface-2); color: var(--ink); line-height: 1.5; -webkit-font-smoothing:antialiased; }
+body { font-family: var(--font); background: var(--page-bg); color: var(--ink); line-height: 1.5; -webkit-font-smoothing:antialiased; }
 
 .hide { display: none !important; }
 .text-sm { font-size: 0.8rem; }
@@ -79,7 +81,7 @@ input:focus, select:focus, textarea:focus {
 }
 input::placeholder { color: var(--ink-4); }
 input[type="file"] { padding: 8px; cursor:pointer; }
-select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position: right 12px center; padding-right:36px; }
+select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2382869c' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position: right 12px center; padding-right:36px; }
 
 .btn {
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
@@ -138,27 +140,27 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
 
 /* Loading overlay */
 #loading-screen {
-  position:fixed; inset:0; background:#0f172a; z-index:9998;
+  position:fixed; inset:0; background:#0c0e13; z-index:9998;
   display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px;
   transition: opacity 0.4s ease;
 }
 #loading-screen.fade-out { opacity:0; pointer-events:none; }
-.loading-logo { width:56px; height:56px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius:16px; display:flex; align-items:center; justify-content:center; }
-.loading-logo svg { width:28px; height:28px; stroke:#fff; fill:none; stroke-width:2; }
-.loading-text { color:rgba(255,255,255,0.5); font-size:0.85rem; }
-.loading-spinner { width:24px; height:24px; border:2px solid rgba(255,255,255,0.2); border-top-color:#2563eb; border-radius:50%; animation:spin 0.8s linear infinite; }
+.loading-logo { width:56px; height:56px; background: linear-gradient(135deg, #c9a961, #8a6d3b); border-radius:16px; display:flex; align-items:center; justify-content:center; }
+.loading-logo svg { width:28px; height:28px; stroke:#0c0e13; fill:none; stroke-width:2; }
+.loading-text { color:rgba(255,255,255,0.45); font-size:0.85rem; }
+.loading-spinner { width:24px; height:24px; border:2px solid rgba(255,255,255,0.15); border-top-color:#c9a961; border-radius:50%; animation:spin 0.8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 
 /* AUTH */
 #auth-screen {
   min-height:100vh; display:flex; align-items:center; justify-content:center;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+  background: linear-gradient(135deg, #0a0b0f 0%, #171a22 50%, #0a0b0f 100%);
   position:relative; overflow:hidden;
 }
 #auth-screen::before {
   content:''; position:absolute; inset:0;
-  background: radial-gradient(ellipse at 30% 20%, rgba(37,99,235,0.2) 0%, transparent 60%),
-              radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.1) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 30% 20%, rgba(201,169,97,0.16) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(201,169,97,0.07) 0%, transparent 60%);
 }
 .auth-grid-bg {
   position:absolute; inset:0; opacity:0.06;
@@ -172,11 +174,11 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
 }
 .auth-brand { text-align:center; margin-bottom:40px; }
 .auth-logo-mark {
-  width:56px; height:56px; background: linear-gradient(135deg, #2563eb, #7c3aed);
+  width:56px; height:56px; background: linear-gradient(135deg, #c9a961, #8a6d3b);
   border-radius:16px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center;
-  box-shadow: 0 8px 24px rgba(37,99,235,0.4);
+  box-shadow: 0 8px 24px rgba(201,169,97,0.35);
 }
-.auth-logo-mark svg { width:28px; height:28px; fill:none; stroke:#fff; stroke-width:2; }
+.auth-logo-mark svg { width:28px; height:28px; fill:none; stroke:#0c0e13; stroke-width:2; }
 .auth-brand h1 { font-size:1.8rem; font-weight:700; color:#fff; letter-spacing:-0.02em; }
 .auth-brand p { color:rgba(255,255,255,0.45); font-size:0.85rem; margin-top:4px; }
 .auth-card label { color:rgba(255,255,255,0.55); }
@@ -186,7 +188,7 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
 }
 .auth-card input::placeholder { color:rgba(255,255,255,0.25); }
 .auth-card input:focus {
-  border-color: rgba(37,99,235,0.7); box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+  border-color: rgba(201,169,97,0.7); box-shadow: 0 0 0 3px rgba(201,169,97,0.18);
   background: rgba(255,255,255,0.1);
 }
 .auth-tabs { display:flex; gap:4px; background:rgba(255,255,255,0.07); padding:4px; border-radius:12px; margin-bottom:28px; }
@@ -196,8 +198,8 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
 }
 .auth-tab.active { background: rgba(255,255,255,0.15); color:#fff; }
 .auth-field-group { margin-bottom:18px; }
-.btn-auth { width:100%; padding:13px; background: linear-gradient(135deg, #2563eb, #7c3aed); color:#fff; border:none; border-radius:12px; font-family:var(--font); font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; letter-spacing:0.01em; }
-.btn-auth:hover { opacity:0.9; transform:translateY(-1px); box-shadow: 0 8px 20px rgba(37,99,235,0.4); }
+.btn-auth { width:100%; padding:13px; background: linear-gradient(135deg, #c9a961, #8a6d3b); color:#0c0e13; border:none; border-radius:12px; font-family:var(--font); font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; letter-spacing:0.01em; }
+.btn-auth:hover { opacity:0.92; transform:translateY(-1px); box-shadow: 0 8px 20px rgba(201,169,97,0.35); }
 .btn-auth:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
 .auth-link { color:rgba(255,255,255,0.4); font-size:0.8rem; text-align:center; margin-top:16px; }
 .auth-link span { color:rgba(99,179,237,0.9); cursor:pointer; text-decoration:underline; }
@@ -207,12 +209,12 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
 /* ONBOARDING */
 #onboarding-screen {
   min-height:100vh; display:flex; align-items:center; justify-content:center;
-  background: linear-gradient(135deg, #0f172a 0%, #1a2744 100%);
+  background: linear-gradient(135deg, #0a0b0f 0%, #171a22 100%);
   position:relative; overflow:hidden;
 }
 .onboarding-card {
-  background:#fff; border-radius:28px; padding:48px; width:min(640px,95vw);
-  box-shadow: 0 32px 80px rgba(0,0,0,0.4); position:relative; z-index:1;
+  background:var(--surface); border-radius:28px; padding:48px; width:min(640px,95vw);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5); position:relative; z-index:1; border:1px solid var(--border);
 }
 .onboarding-header { text-align:center; margin-bottom:36px; }
 .step-indicator { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:36px; }
@@ -470,27 +472,48 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
   .pos-layout { grid-template-columns:1fr; }
   .cart-panel { position:static; }
   .inventory-layout { grid-template-columns:1fr; }
+  .inventory-form-card { position:static; }
   .settings-layout { grid-template-columns:1fr; }
+  .settings-nav { display:flex; overflow-x:auto; gap:4px; padding:8px; -webkit-overflow-scrolling:touch; }
+  .settings-nav-item { flex-shrink:0; margin-bottom:0; }
   .sidebar { display:none; }
   .main-content { padding:16px; }
   .mobile-nav {
     display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface);
     border-top:1px solid var(--border); padding:8px 0 calc(8px + env(safe-area-inset-bottom));
-    z-index:500; box-shadow:0 -4px 20px rgba(0,0,0,0.08);
+    z-index:500; box-shadow:0 -4px 24px rgba(0,0,0,0.4);
   }
-  .mob-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:6px; color:var(--ink-4); transition:color 0.15s; }
+  .mob-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:8px 4px; color:var(--ink-4); transition:color 0.15s; min-height:44px; position:relative; }
   .mob-nav-item.active { color:var(--accent); }
   .mob-nav-item svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2; }
   .mob-nav-item span { font-size:0.65rem; font-weight:600; }
-  .main-content { padding-bottom:80px; }
-  .topbar { padding:0 16px; }
+  .main-content { padding-bottom:84px; }
+  .topbar { padding:0 14px; gap:10px; }
+  .biz-info small { display:none; }
+  .user-pill span { display:none; }
+  .qty-btn, .remove-btn { min-width:36px; min-height:36px; }
+  .qty-btn { width:36px; height:36px; }
+  .product-grid { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; }
+  .modal { padding:24px 20px; }
+  .cart-card .cart-footer { position:sticky; bottom:0; }
+  .td-actions { flex-wrap:wrap; }
+  .stat-card { padding:16px; }
+  .stat-value { font-size:1.25rem; }
 }
 @media (max-width: 600px) {
   .stats-grid { grid-template-columns:1fr 1fr; }
   .category-grid { grid-template-columns:repeat(2,1fr); }
   .bill-table thead { display:none; }
-  .bill-table td { display:flex; justify-content:space-between; padding:8px 12px; font-size:0.8rem; }
+  .bill-table td { display:flex; justify-content:space-between; padding:8px 12px; font-size:0.8rem; align-items:center; gap:8px; }
   .bill-table td::before { content:attr(data-label); font-weight:600; color:var(--ink-3); font-size:0.72rem; }
+  .inventory-table thead { display:none; }
+  .inventory-table td { display:flex; justify-content:space-between; padding:8px 12px; font-size:0.8rem; align-items:center; gap:8px; }
+  .inventory-table td::before { content:attr(data-label); font-weight:600; color:var(--ink-3); font-size:0.72rem; }
+  .payment-methods { grid-template-columns:repeat(2,1fr); }
+  .split-pay-methods { grid-template-columns:1fr; }
+  .onboarding-card, .auth-card { padding:28px 22px; }
+  .qty-picker-modal { padding:24px 18px !important; }
+  .settings-group { padding:18px; }
 }
 
 @media print {
@@ -755,9 +778,14 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
         </div>
         <div class="pos-layout">
           <div>
-            <div class="search-wrap">
-              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" placeholder="Search products by name…" oninput="searchProducts(this.value)" id="pos-search">
+            <div class="search-wrap" style="display:flex;gap:8px;align-items:center;position:relative">
+              <div style="position:relative;flex:1">
+                <svg viewBox="0 0 24 24" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--ink-3);fill:none;stroke-width:2;pointer-events:none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" placeholder="Search by name or scan barcode…" oninput="searchProducts(this.value)" onkeydown="if(event.key==='Enter') handleBarcodeEnter(this.value)" id="pos-search" style="padding-left:44px;background:var(--surface)">
+              </div>
+              <button type="button" class="btn btn-ghost btn-icon" onclick="openBarcodeScanner('pos-search')" title="Scan barcode with camera">
+                <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="11" y1="8" x2="11" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/></svg>
+              </button>
             </div>
             <div id="product-grid" class="product-grid"></div>
             <div id="product-empty" class="empty-state hide">
@@ -875,7 +903,7 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
             <div class="stat-label">Total Bills</div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon" style="background:#fdf4ff;color:#7c3aed">
+            <div class="stat-icon" style="background:rgba(168,136,224,0.13);color:#a888e0">
               <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
             <div class="stat-value" id="stat-customers">0</div>
@@ -930,6 +958,15 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
             <div style="margin-bottom:14px">
               <label>Product Name *</label>
               <input id="inv-name" placeholder="Enter product name">
+            </div>
+            <div style="margin-bottom:14px">
+              <label>Barcode / SKU</label>
+              <div style="display:flex;gap:8px">
+                <input id="inv-barcode" placeholder="Scan or type barcode" style="flex:1">
+                <button type="button" class="btn btn-ghost btn-icon" onclick="openBarcodeScanner('inv-barcode')" title="Scan barcode">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="11" y1="8" x2="11" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/></svg>
+                </button>
+              </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
               <div>
@@ -1179,6 +1216,23 @@ select { appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns
         <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         Add to Cart
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- BARCODE SCANNER MODAL -->
+<div class="overlay" id="barcode-overlay">
+  <div class="modal" style="max-width:400px;text-align:center">
+    <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:4px">Scan Barcode</h3>
+    <p class="text-sm text-muted" style="margin-bottom:16px">Point your camera at a barcode</p>
+    <div id="barcode-reader" style="width:100%;border-radius:var(--radius);overflow:hidden;background:var(--surface-2);min-height:220px"></div>
+    <p id="barcode-fallback-msg" class="text-sm text-muted hide" style="margin-top:12px">Camera scanning isn't available on this device/browser. Type the barcode manually below.</p>
+    <div style="margin-top:16px">
+      <input id="barcode-manual-input" placeholder="Or type barcode manually" onkeydown="if(event.key==='Enter') submitManualBarcode()">
+    </div>
+    <div class="qty-picker-actions" style="margin-top:14px">
+      <button class="btn btn-ghost btn-full" onclick="closeBarcodeScanner()">Cancel</button>
+      <button class="btn btn-primary btn-full" onclick="submitManualBarcode()">Use Barcode</button>
     </div>
   </div>
 </div>
@@ -1526,9 +1580,9 @@ function applyBizBranding() {
   }
 
   const colors = {
-    'Bakery & Café': '#d97706', 'Retail & Fashion': '#7c3aed',
-    'Restaurant & Food': '#dc2626', 'Pharmacy & Health': '#059669',
-    'Electronics & Tech': '#2563eb', 'General Store': '#0891b2',
+    'Bakery & Café': '#e0a458', 'Retail & Fashion': '#a888e0',
+    'Restaurant & Food': '#ff6b6b', 'Pharmacy & Health': '#3ddc97',
+    'Electronics & Tech': '#6d9bff', 'General Store': '#4dd0e1',
   };
   logoCircle.style.background = colors[bizData.category] || 'var(--accent)';
 
@@ -1914,17 +1968,17 @@ function renderChartRange() {
     data: {
       labels,
       datasets: [
-        { label: 'Revenue', data: revData,    borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.08)', fill: true, tension: 0.4, pointRadius: 4, borderWidth: 2 },
-        { label: 'Profit',  data: profitData, borderColor: '#059669', backgroundColor: 'rgba(5,150,105,0.06)', fill: true, tension: 0.4, pointRadius: 4, borderWidth: 2 },
+        { label: 'Revenue', data: revData,    borderColor: '#c9a961', backgroundColor: 'rgba(201,169,97,0.12)', fill: true, tension: 0.4, pointRadius: 4, borderWidth: 2 },
+        { label: 'Profit',  data: profitData, borderColor: '#3ddc97', backgroundColor: 'rgba(61,220,151,0.08)', fill: true, tension: 0.4, pointRadius: 4, borderWidth: 2 },
       ],
     },
     options: {
       maintainAspectRatio: false, responsive: true,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { font: { family: 'DM Sans', size: 12 }, color: '#3d3d4a', usePointStyle: true } } },
+      plugins: { legend: { labels: { font: { family: 'DM Sans', size: 12 }, color: '#b9bccb', usePointStyle: true } } },
       scales: {
-        x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#8888a0' } },
-        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#8888a0', callback: v => cur() + v.toFixed(0) } },
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#82869c' } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#82869c', callback: v => cur() + v.toFixed(0) } },
       },
     },
   });
